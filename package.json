@@ -1,0 +1,25 @@
+{
+  "name": "whatsapp_car_bot",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A personal automotive assistant that lives entirely in WhatsApp. Multiple vehicles, every expense, every litre of fuel, every service, every document, every reminder — logged and tracked through natural-language chat, no app required.",
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "convex": "^1.45.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "^7.0.2"
+  },
+  "allowScripts": {
+    "esbuild@0.27.0": true
+  }
+}

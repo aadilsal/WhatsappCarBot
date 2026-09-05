@@ -1,0 +1,21 @@
+# Garage Bot — Build Phases
+
+Tracker for incremental delivery. Check a box when the phase is done and verified (not just coded). Maps onto the build order in architecture.md §8, with a Phase 0 prepended for project scaffolding.
+
+- [ ] **Phase 0 — Scaffolding.** `package.json`, TypeScript config, Convex project wired up (`npx convex dev` logged in and pushing), folder structure per agents.md, `.env.example`, git repo initialized. Achieves: a project that runs `npx convex dev` cleanly with zero functions, ready for schema.
+- [ ] **Phase 1 — Schema.** All seven tables (`users`, `vehicles`, `events`, `rules`, `sentReminders`, `pending`, `inboundMessages`) with the indexes listed in architecture.md §2. Achieves: the full data model exists in Convex, nothing reads/writes it yet.
+- [ ] **Phase 2 — WhatsApp webhook.** `convex/http.ts` + `convex/webhook.ts`: Meta verify handshake (`hub.verify_token`), signature check (`X-Hub-Signature-256`), inbound dedupe via `inboundMessages`, stamp `users.lastInboundAt`. Achieves: a real WhatsApp message sent to the bot's number gets acknowledged and logged, with no double-processing on retry.
+- [ ] **Phase 3 — Setup wizard.** `pending`-backed multi-turn flow: identity → odometer → calibration (architecture.md §3). Claude-parsed paste-fill on every step, `skip` support, draft persistence, seeds vehicle + all 16 default rules on completion. Achieves: `add vehicle` onboards a real vehicle end-to-end over WhatsApp.
+- [ ] **Phase 4 — Event logging.** Free-form message → parsed `events` row, vehicle resolution (nickname/plate/model, disambiguation list on miss), odometer capture on fuel events, rate smoothing (30% blend, backwards/>800km-day rejection), full-tank flag, anchor patching in the same mutation, undo snapshot written on every event. Achieves: fuel/service/expense/wash/document logging works, and `undo` can fully reverse the last entry.
+- [ ] **Phase 5 — Rule evaluator + hourly cron.** Projection math, dual km/month due calculation, tier ladder (km 1000/250/overdue, days 30/14/7/1/overdue), overdue distance-bucket escalation, `sentReminders` dedupe by `(ruleId, cycleKey, tierKey)`. Achieves: reminders actually fire on schedule, once, per tier, without re-spamming.
+- [ ] **Phase 6 — Retrieval commands.** `due`, `due <vehicle>`, `undo` (already functional from Phase 4, wired into command dispatch). Achieves: the "Tonight" build order (architecture.md §8) is complete — this is the first usable end-to-end bot.
+- [ ] **Phase 7 — Template approval + send wrapper.** Submit the three Meta templates (`garage_reminder`, `garage_summary`, `garage_checkin`); build `sendToUser()` to pick template vs. free-form off `lastInboundAt`, queue the rich message for delivery on reply. Achieves: reminders and check-ins deliver even when the user hasn't messaged in 24h+.
+- [ ] **Phase 8 — Summaries + daily check-in.** `summary`, `summary <month>`, `week` commands; scheduled 10PM check-in cron (`0 17 * * *` UTC) and Sunday summary cron (`0 15 * * 0` UTC). Achieves: proactive daily/weekly touchpoints, not just on-demand queries.
+- [ ] **Phase 9 — Overrides + corrections.** `set <vehicle> <category> <N>km`, free-text anchor corrections ("oil was actually done at 121000 in March"), `history <vehicle> <category>`, `vehicles`, `rules <vehicle>`. Achieves: every number in the system is correctable from chat, no dashboard needed.
+- [ ] **Phase 10 — Fuel economy.** Lazy km/l computation from consecutive full-tank pairs, surfaced in `summary`/`history`. Achieves: honest fuel economy without storing a derived value.
+- [ ] **Phase 11 — Documents & media.** Inbound photo/document handling, Convex file storage vs. proxied Meta media fetch (decision in architecture.md §9). Achieves: receipts and document photos attach to events.
+- [ ] **Phase 12 — Charts.** Rendered chart images (spend/distance trends) sent into the chat on request. Achieves: visual summaries without a dashboard.
+
+## Notes
+- Phases 0–6 are the "Tonight" scope and the only phases that touch the schema. Nothing after Phase 6 should require a schema migration.
+- Tick a box only once the phase has been manually exercised (a real WhatsApp message round-trip where applicable), not just once the code compiles.

@@ -1,0 +1,22 @@
+node_modules/
+dist/
+build/
+
+# Convex
+convex/_generated/
+.convex/
+
+# Env
+.env
+.env.local
+.env*.local
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+npm-debug.log*
+*.log
