@@ -16,6 +16,7 @@ convex/_generated/
 Thumbs.db
 .vscode/
 .idea/
+.claude/
 
 # Logs
 npm-debug.log*
