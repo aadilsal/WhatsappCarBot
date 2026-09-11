@@ -179,14 +179,27 @@ export default defineSchema({
     createdAt: v.number(),
   }).index("by_waId", ["waId"]),
 
-  // Dashboard session tokens, issued on successful OTP verification. Passed
-  // explicitly as an argument on every dashboard.ts call and validated
-  // server-side — never a bare userId trusted from the client.
+  // Dashboard session tokens, issued on successful OTP verification (or
+  // magic-link redemption). Passed explicitly as an argument on every
+  // dashboard.ts call and validated server-side — never a bare userId
+  // trusted from the client.
   sessions: defineTable({
     token: v.string(),
     userId: v.id("users"),
     waId: v.string(),
     expiresAt: v.number(),
+    createdAt: v.number(),
+  }).index("by_token", ["token"]),
+
+  // One-tap login links sent over WhatsApp (broadcast + every log-event
+  // reply). Short-lived and single-use by design — the link itself expires
+  // in minutes; redeeming it mints a normal long-lived `sessions` row, so an
+  // old WhatsApp message sitting in chat history can't be replayed later.
+  magicLinks: defineTable({
+    token: v.string(),
+    waId: v.string(),
+    expiresAt: v.number(),
+    consumed: v.boolean(),
     createdAt: v.number(),
   }).index("by_token", ["token"]),
 });

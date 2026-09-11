@@ -10,3 +10,8 @@ export const getByWaId = internalQuery({
       .unique();
   },
 });
+
+export const listAll = internalQuery({
+  args: {},
+  handler: async (ctx) => await ctx.db.query("users").collect(),
+});

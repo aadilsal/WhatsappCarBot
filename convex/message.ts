@@ -74,6 +74,15 @@ async function send(ctx: any, userId: Id<"users">, message: string) {
   await ctx.runAction(internal.send.sendToUser, { userId, message });
 }
 
+// Every log-event confirmation carries a fresh one-tap dashboard link, so
+// the user is never more than one message away from seeing the full
+// history/reminders view (magic link — no code to type, expires in 15min).
+async function sendEventConfirmation(ctx: any, user: Doc<"users">, message: string) {
+  const magicToken = await ctx.runMutation(internal.auth.createMagicLink, { waId: user.waId });
+  const link = `${globalThis.process.env.DASHBOARD_URL}/auth/${magicToken}`;
+  await send(ctx, user._id, `${message}\n\n📊 View on the dashboard: ${link}`);
+}
+
 // ---------- setup wizard ----------
 
 async function startSetup(ctx: any, user: Doc<"users">, text: string) {
@@ -205,9 +214,9 @@ async function handleOdoPrompt(ctx: any, user: Doc<"users">, draft: PendingFuelE
     raw: draft.raw,
   });
 
-  await send(
+  await sendEventConfirmation(
     ctx,
-    user._id,
+    user,
     buildEventConfirmation(draft.vehicleName, { kind: draft.kind, category: draft.category, odo, amount: draft.amount, liters: draft.liters }, result),
   );
 }
@@ -263,7 +272,7 @@ async function processEventForVehicle(ctx: any, user: Doc<"users">, vehicle: Doc
     raw: text,
   });
 
-  await send(ctx, user._id, buildEventConfirmation(vehicle.nickname, parsed, result));
+  await sendEventConfirmation(ctx, user, buildEventConfirmation(vehicle.nickname, parsed, result));
 }
 
 function buildEventConfirmation(
