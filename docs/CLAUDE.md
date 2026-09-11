@@ -4,7 +4,7 @@ Project-specific instructions for Claude Code. These apply on top of (and, where
 
 ## What this is
 
-A WhatsApp-native personal automotive assistant: Convex (db/functions/crons) + WhatsApp Cloud API + Claude for parsing. No dashboard, no frontend — WhatsApp is the entire interface, permanently, by design. See PRD.md for scope, architecture.md for the full technical design, architecture-essentials.md for a one-page reference, agents.md for coding conventions.
+A WhatsApp-native personal automotive assistant: Convex (db/functions/crons) + WhatsApp Cloud API + Claude for parsing. WhatsApp is the primary interface. A companion web dashboard (`web/`, Next.js + Convex, OTP login via WhatsApp) exists for browsing history, filtering, and light corrections — never deletion. See PRD.md for scope, architecture.md for the full technical design, architecture-essentials.md for a one-page reference, agents.md for coding conventions.
 
 **Read agents.md before writing any Convex function.** It has the non-negotiable patterns (transactional anchor-patching, undo snapshots, webhook dedupe ordering, the `sendToUser()` wrapper) that this project depends on. Violating one of them produces a bug that's invisible until a real reminder misfires weeks later, not a test failure today.
 
@@ -32,6 +32,6 @@ Never log these, never write them into `events.raw` or any user-facing message.
 
 ## Scope discipline
 
-- No web dashboard, no admin panel, no REST API for humans — ever. Every capability is a WhatsApp command (architecture.md §7) or a setup-wizard step (architecture.md §3).
+- The `web/` dashboard (see `convex/dashboard.ts` and `convex/auth.ts`) is the one exception to WhatsApp-only: it can read/create/update vehicles, events, and rules, but never deletes events/documents (only archives vehicles). Every write there reuses the same core mutation logic as the WhatsApp path (logEventCore, finalizeSetupCore) — never a second implementation of the anchor-patching rules.
 - Multi-vehicle support (`vehicleId` on every row) is already in the schema from day one — don't "simplify" it back out for a single-vehicle first pass.
 - Due dates, fuel economy, and anything else derivable from `events`/`rules` at read time must stay derived, not stored — see architecture.md §1 ("derive, don't store").

@@ -89,6 +89,7 @@ export default defineSchema({
             anchorOdo: v.optional(v.number()),
             anchorAt: v.optional(v.number()),
             anchorEstimated: v.optional(v.boolean()),
+            anchorSetAt: v.optional(v.number()),
           }),
         ),
       }),
@@ -115,6 +116,12 @@ export default defineSchema({
     anchorOdo: v.optional(v.number()),
     anchorAt: v.optional(v.number()),
     anchorEstimated: v.optional(v.boolean()), // true when setup assumed "now" rather than being told a real date/reading
+    // Stamped only when the anchor *value* itself is set by a logged event
+    // (logEventCore), never by an interval/active-only edit (setInterval_,
+    // dashboard updateRule). Lets the dashboard's event-edit flow tell "did
+    // this exact event set the anchor currently in effect?" from `updatedAt`
+    // alone being ambiguous (also bumped by non-anchor edits).
+    anchorSetAt: v.optional(v.number()),
 
     // expiry mode
     dueAt: v.optional(v.number()),
@@ -159,4 +166,27 @@ export default defineSchema({
     messageId: v.string(), // Meta's WhatsApp message ID
     receivedAt: v.number(),
   }).index("by_messageId", ["messageId"]),
+
+  // Dashboard login codes, one active row per waId. `consumed` prevents
+  // reuse; `attempts` caps guessing. A stale row is just ignored past
+  // expiresAt, same pattern as `pending`.
+  otpCodes: defineTable({
+    waId: v.string(),
+    code: v.string(), // 6 digits
+    expiresAt: v.number(),
+    attempts: v.number(),
+    consumed: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_waId", ["waId"]),
+
+  // Dashboard session tokens, issued on successful OTP verification. Passed
+  // explicitly as an argument on every dashboard.ts call and validated
+  // server-side — never a bare userId trusted from the client.
+  sessions: defineTable({
+    token: v.string(),
+    userId: v.id("users"),
+    waId: v.string(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+  }).index("by_token", ["token"]),
 });

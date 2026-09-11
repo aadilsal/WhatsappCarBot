@@ -3,32 +3,49 @@
 // one transactional mutation, and always carries a full undo snapshot.
 
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import { computeOdoUpdate } from "../lib/rateSmoothing";
 
-export const logEvent = internalMutation({
-  args: {
-    vehicleId: v.id("vehicles"),
-    userId: v.id("users"),
-    kind: v.union(
-      v.literal("fuel"),
-      v.literal("service"),
-      v.literal("expense"),
-      v.literal("odo"),
-      v.literal("document"),
-      v.literal("note"),
-    ),
-    category: v.optional(v.string()),
-    odo: v.optional(v.number()),
-    amount: v.optional(v.number()),
-    liters: v.optional(v.number()),
-    fullTank: v.optional(v.boolean()),
-    expiresAt: v.optional(v.number()),
-    notes: v.optional(v.string()),
-    raw: v.string(),
-  },
-  handler: async (ctx, args) => {
+export type LogEventArgs = {
+  vehicleId: Id<"vehicles">;
+  userId: Id<"users">;
+  kind: "fuel" | "service" | "expense" | "odo" | "document" | "note";
+  category?: string;
+  odo?: number;
+  amount?: number;
+  liters?: number;
+  fullTank?: boolean;
+  expiresAt?: number;
+  notes?: string;
+  raw: string;
+};
+
+const logEventArgsValidator = {
+  vehicleId: v.id("vehicles"),
+  userId: v.id("users"),
+  kind: v.union(
+    v.literal("fuel"),
+    v.literal("service"),
+    v.literal("expense"),
+    v.literal("odo"),
+    v.literal("document"),
+    v.literal("note"),
+  ),
+  category: v.optional(v.string()),
+  odo: v.optional(v.number()),
+  amount: v.optional(v.number()),
+  liters: v.optional(v.number()),
+  fullTank: v.optional(v.boolean()),
+  expiresAt: v.optional(v.number()),
+  notes: v.optional(v.string()),
+  raw: v.string(),
+};
+
+// Shared by the WhatsApp path (internalMutation below) and the dashboard's
+// public createEvent mutation (dashboard.ts) — one implementation of the
+// anchor-patching invariants, never two that can drift apart (agents.md).
+export async function logEventCore(ctx: MutationCtx, args: LogEventArgs) {
     const vehicle = await ctx.db.get(args.vehicleId);
     if (!vehicle) throw new Error(`logEvent: unknown vehicleId ${args.vehicleId}`);
 
@@ -61,6 +78,7 @@ export const logEvent = internalMutation({
               anchorOdo: touchedRule.anchorOdo,
               anchorAt: touchedRule.anchorAt,
               anchorEstimated: touchedRule.anchorEstimated,
+              anchorSetAt: touchedRule.anchorSetAt,
             },
           ]
         : [],
@@ -107,11 +125,12 @@ export const logEvent = internalMutation({
           await ctx.db.patch(touchedRule._id, {
             dueAt: args.expiresAt,
             anchorEstimated: false,
+            anchorSetAt: now,
             updatedAt: now,
           });
         }
       } else {
-        const patch: Record<string, unknown> = { anchorEstimated: false, updatedAt: now };
+        const patch: Record<string, unknown> = { anchorEstimated: false, anchorSetAt: now, updatedAt: now };
         if (touchedRule.intervalKm !== undefined && odoForAnchor !== undefined) {
           patch.anchorOdo = odoForAnchor;
         }
@@ -123,7 +142,11 @@ export const logEvent = internalMutation({
     }
 
     return { eventId, odoRejectedReason, touchedCategory: touchedRule?.category };
-  },
+}
+
+export const logEvent = internalMutation({
+  args: logEventArgsValidator,
+  handler: async (ctx, args) => logEventCore(ctx, args),
 });
 
 export const undoLast = internalMutation({
@@ -149,6 +172,7 @@ export const undoLast = internalMutation({
         anchorOdo: r.anchorOdo,
         anchorAt: r.anchorAt,
         anchorEstimated: r.anchorEstimated,
+        anchorSetAt: r.anchorSetAt,
         updatedAt: Date.now(),
       });
     }

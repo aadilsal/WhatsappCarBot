@@ -7,7 +7,7 @@ For product scope and rationale, see PRD.md. For a one-page operational cheat-sh
 - **Convex** — database, server functions (queries/mutations/actions), crons, HTTP endpoints. Single backend, no separate API server.
 - **WhatsApp Cloud API** — inbound webhook + outbound messages (free-form and template).
 - **Claude (Anthropic API)** — parses free-form WhatsApp text into structured fields at every step: setup wizard answers, event logging, corrections, commands.
-- **No dashboard, no web app, no separate frontend.** WhatsApp is the entire interface. This is a design constraint, not a temporary gap — see §6.
+- **WhatsApp is the primary interface; a companion read/edit web dashboard exists for browsing history, filtering, and light corrections.** No deletion of events/documents anywhere 2014 that history matters for resale 2014 see §6.
 
 ## 1. Design principles
 
@@ -19,7 +19,7 @@ For product scope and rationale, see PRD.md. For a one-page operational cheat-sh
 
 **The odometer is the backbone.** Every kilometre-based rule fails silently without it. Capture is designed around this single fact (see §4, odometer capture).
 
-**No dashboard means chat carries everything.** Reading history, editing rules, and fixing mistakes all need commands. There is no UI to click through and no way to correct a bad row except by talking to the bot.
+**Chat still carries everything for logging.** The dashboard (web/) is for browsing/filtering history, light corrections (never deleting), and reminders — new events are best logged by talking to the bot, which is still the fastest path and the only one with a `set` command and `undo`.
 
 ## 2. Data model
 

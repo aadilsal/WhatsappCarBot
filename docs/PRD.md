@@ -19,12 +19,12 @@ A single owner (initially the builder) managing 1–3 personal vehicles. Designe
 - Log any vehicle event (fuel, service, expense, document, odometer reading, note) in one WhatsApp message, in natural language, in under 10 seconds.
 - Never miss a maintenance interval or document expiry — surfaced proactively, not just on request.
 - Support multiple vehicles from day one without the bot ever asking "which vehicle?" when there's only one.
-- Make every number correctable by talking to the bot — no dashboard, no admin panel, ever.
+- Make every number correctable by talking to the bot, or by editing it directly on the web dashboard (no delete, ever, for events/documents — that history is what matters when selling the car).
 - Keep the reminder system rule-driven so adding a new maintenance category is a data change, not a code change.
 
 ## 5. Non-goals
 
-- No web dashboard or mobile app. WhatsApp is the entire UI, permanently, by design (see architecture.md §6).
+- A companion web dashboard (Next.js + Convex, OTP login via WhatsApp) for browsing/filtering history and light corrections. WhatsApp stays the primary way to log — the dashboard never deletes events or documents, and vehicles are archived, not deleted (see architecture.md §6).
 - No fleet/commercial features (driver assignment, dispatch, geofencing).
 - No accounting-grade financial reporting — spend totals are for personal awareness, not tax filing.
 - No support for vehicles without an odometer-relevant use case (the odometer is structurally load-bearing; see architecture.md §1).

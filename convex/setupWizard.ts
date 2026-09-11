@@ -4,7 +4,8 @@
 // separate "quick setup" path (agents.md).
 
 import { v } from "convex/values";
-import { internalMutation } from "./_generated/server";
+import { internalMutation, type MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { buildDefaultRuleRows, categoryLabel, type Calibration } from "./rules";
 import type { SetupExtraction } from "./parsing/setup";
 
@@ -149,9 +150,12 @@ export function buildEchoLine(extraction: SetupExtraction): string | null {
 }
 
 // Vehicle insert + all 16 rule inserts, one atomic mutation (architecture.md §3).
-export const finalizeSetup = internalMutation({
-  args: { userId: v.id("users"), draft: v.any() },
-  handler: async (ctx, { userId, draft }: { userId: any; draft: SetupDraft }) => {
+// Shared by the WhatsApp wizard (internalMutation below) and the dashboard's
+// public addVehicle mutation (dashboard.ts).
+export async function finalizeSetupCore(
+  ctx: MutationCtx,
+  { userId, draft }: { userId: Id<"users">; draft: SetupDraft },
+) {
     const now = Date.now();
 
     const vehicleId = await ctx.db.insert("vehicles", {
@@ -190,7 +194,12 @@ export const finalizeSetup = internalMutation({
       calibratedCount,
       estimatedCount,
     };
-  },
+}
+
+export const finalizeSetup = internalMutation({
+  args: { userId: v.id("users"), draft: v.any() },
+  handler: async (ctx, { userId, draft }: { userId: Id<"users">; draft: SetupDraft }) =>
+    finalizeSetupCore(ctx, { userId, draft }),
 });
 
 export { categoryLabel };
