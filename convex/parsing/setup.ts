@@ -29,10 +29,21 @@ export type SetupExtraction = {
 // §3. We always offer the full schema, not just the current step's field, and
 // let Claude fill whatever it recognizes; the wizard driver advances the step
 // pointer to the first still-missing field afterward.
-export async function extractSetupFields(now: number, userText: string): Promise<SetupExtraction> {
+//
+// `askedPrompt` is the wizard question the user is replying to (or null on the
+// very first message, before any question has been asked). Without it, a bare
+// reply like "Honda City" to "what should I call this vehicle?" reads as
+// make/model to the model and nickname never gets filled — the wizard would
+// stall on that step forever since it has no other way to detect a plain
+// answer to the question actually on screen.
+export async function extractSetupFields(
+  now: number,
+  userText: string,
+  askedPrompt: string | null = null,
+): Promise<SetupExtraction> {
   const system = `You extract vehicle setup fields from a WhatsApp message for a car-maintenance bot.
 Current date/time (UTC ms epoch): ${now} (${new Date(now).toISOString()}).
-
+${askedPrompt ? `\nThe user was just asked: "${askedPrompt}". If their reply is a direct, otherwise-unclaimed answer to that question, fill the field it corresponds to — even if the same text could also be read as another field. In particular, a nickname does not have to differ from the make/model ("Honda City" is a perfectly good nickname); when the question asked was about the nickname, treat a short freeform reply as the nickname on top of any other fields you also recognize in it.\n` : ""}
 Respond with ONLY a single JSON object, no prose, no markdown fences. Omit any key you are not confident about — do not guess or invent values.
 
 Recognized keys:

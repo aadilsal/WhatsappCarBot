@@ -19,6 +19,7 @@ export async function callClaudeForJson(system: string, userText: string): Promi
     body: JSON.stringify({
       model: MODEL,
       max_tokens: 1024,
+      thinking: { type: "disabled" }, // deterministic JSON extraction — no reasoning needed
       system,
       messages: [{ role: "user", content: userText }],
     }),
@@ -30,7 +31,10 @@ export async function callClaudeForJson(system: string, userText: string): Promi
   }
 
   const data = await res.json();
-  const text: string = data.content?.[0]?.text ?? "";
+  const content: Array<{ type: string; text?: string }> = data.content ?? [];
+  // Sonnet 5 emits a leading `thinking` block before the `text` block, so the
+  // text content isn't reliably at index 0 — find it by type instead.
+  const text: string = content.find((block) => block.type === "text")?.text ?? "";
   return extractJson(text);
 }
 
@@ -42,6 +46,7 @@ function extractJson(text: string): unknown | null {
   try {
     return JSON.parse(candidate);
   } catch {
+    console.error("callClaudeForJson: failed to parse model output as JSON", candidate);
     return null;
   }
 }

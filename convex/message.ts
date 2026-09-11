@@ -95,7 +95,7 @@ async function handleSetupTurn(ctx: any, user: Doc<"users">, draftIn: SetupDraft
   if (trimmed === "skip" && currentStep && !currentStep.required) {
     draft = markSkipped(draft, currentStep.key);
   } else {
-    const extraction = await extractSetupFields(Date.now(), text);
+    const extraction = await extractSetupFields(Date.now(), text, currentStep?.prompt ?? null);
     draft = mergeExtraction(draft, extraction);
     echo = buildEchoLine(extraction);
   }
